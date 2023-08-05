@@ -35,4 +35,8 @@ diff_program:meld
 #executable:${TEXTTEST_HOME}/julia/texttest_fixture.jl
 #interpreter:julia
 
+# Settings for Go verion
+executable:${TEXTTEST_HOME}/go/texttest_fixture
+
+
 filename_convention_scheme:standard
