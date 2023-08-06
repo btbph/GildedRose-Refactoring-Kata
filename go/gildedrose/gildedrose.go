@@ -12,56 +12,108 @@ const (
 )
 
 const (
+	MinQuality = 0
 	MaxQuality = 50
 )
 
+const (
+	ChangeRate       = 1
+	DoubleChaneRate  = 2 * ChangeRate
+	TripleChangeRate = 3 * ChangeRate
+)
+
 func UpdateQuality(items []*Item) {
-	for i := 0; i < len(items); i++ {
-
-		if items[i].Name != AgedBrie && items[i].Name != BackstagePass {
-			if items[i].Quality > 0 {
-				if items[i].Name != Sulfras {
-					items[i].Quality = items[i].Quality - 1
-				}
-			}
-		} else {
-			if items[i].Quality < MaxQuality {
-				items[i].Quality = items[i].Quality + 1
-				if items[i].Name == BackstagePass {
-					if items[i].SellIn < 11 {
-						if items[i].Quality < MaxQuality {
-							items[i].Quality = items[i].Quality + 1
-						}
-					}
-					if items[i].SellIn < 6 {
-						if items[i].Quality < MaxQuality {
-							items[i].Quality = items[i].Quality + 1
-						}
-					}
-				}
-			}
-		}
-
-		if items[i].Name != Sulfras {
-			items[i].SellIn = items[i].SellIn - 1
-		}
-
-		if items[i].SellIn < 0 {
-			if items[i].Name != AgedBrie {
-				if items[i].Name != BackstagePass {
-					if items[i].Quality > 0 {
-						if items[i].Name != Sulfras {
-							items[i].Quality = items[i].Quality - 1
-						}
-					}
-				} else {
-					items[i].Quality = items[i].Quality - items[i].Quality
-				}
-			} else {
-				if items[i].Quality < MaxQuality {
-					items[i].Quality = items[i].Quality + 1
-				}
-			}
+	for _, item := range items {
+		if item.Name != Sulfras {
+			setItemSellIn(item)
+			setItemQuality(item)
 		}
 	}
+}
+
+func setItemSellIn(item *Item) {
+	item.SellIn -= ChangeRate
+}
+
+func setItemQuality(item *Item) {
+	item.Quality += getQualityChangeRate(item)
+	item.Quality = checkQualityLimits(item.Quality)
+}
+
+func checkQualityLimits(quality int) int {
+	if quality < MinQuality {
+		quality = MinQuality
+	}
+
+	if quality > MaxQuality {
+		quality = MaxQuality
+	}
+
+	return quality
+}
+
+func getQualityChangeRate(item *Item) int {
+	rate := 0
+
+	isAgedBrie := item.Name == AgedBrie
+	isBackstagePass := item.Name == BackstagePass
+	if isAgedBrie || isBackstagePass {
+		if isAgedBrie {
+			rate = getAgedBrieQualityChangeRate(item)
+		}
+
+		if isBackstagePass {
+			rate = getBackstagePassQualityChangeRate(item)
+		}
+
+	} else {
+		rate = getRegularQualityChangeRate(item)
+	}
+
+	return rate
+}
+
+func getAgedBrieQualityChangeRate(item *Item) int {
+	return doubleRateIfItemExpired(item)
+}
+
+func getBackstagePassQualityChangeRate(item *Item) int { // need to refactor
+	rate := 0
+
+	switch {
+	case item.SellIn == -1:
+		rate = -item.Quality
+	case item.SellIn < 0:
+		rate = 0
+	case 4 < item.SellIn && item.SellIn < 10:
+		rate = DoubleChaneRate
+	case item.SellIn <= 4:
+		rate = TripleChangeRate
+	default:
+		rate = ChangeRate
+	}
+
+	return rate
+}
+
+func getRegularQualityChangeRate(item *Item) int {
+	rate := 0
+	if item.Quality > 0 {
+		rate = doubleRateIfItemExpired(item)
+	}
+
+	return -rate
+}
+
+func doubleRateIfItemExpired(item *Item) int {
+	rate := ChangeRate
+	if isItemExpired(item) {
+		rate = DoubleChaneRate
+	}
+
+	return rate
+}
+
+func isItemExpired(item *Item) bool {
+	return item.SellIn < 0
 }
